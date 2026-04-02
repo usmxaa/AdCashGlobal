@@ -29,13 +29,19 @@
             <a href="#" class="sidebar-item active p-3 rounded-xl flex items-center gap-3 transition-all font-bold text-sm">
                 <i class="fas fa-th-large w-5"></i> Dashboard
             </a>
-            <a href="#" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-gray-400 font-bold text-sm">
+            <a href="offers.html" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-gray-400 font-bold text-sm">
                 <i class="fas fa-fire w-5 text-orange-500"></i> Premium Offers
             </a>
-            <a href="#" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-gray-400 font-bold text-sm">
+            <a href="tasks.html" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-gray-400 font-bold text-sm">
+                <i class="fas fa-tasks w-5"></i> All Tasks
+            </a>
+            <a href="refer.html" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-gray-400 font-bold text-sm">
+                <i class="fas fa-users w-5"></i> Refer & Earn
+            </a>
+            <a href="wallet.html" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-gray-400 font-bold text-sm">
                 <i class="fas fa-wallet w-5"></i> Wallet
             </a>
-            <button id="logoutBtn" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-red-400 font-bold text-sm mt-4">
+            <button id="logoutBtn" class="sidebar-item p-3 rounded-xl flex items-center gap-3 transition-all text-red-500 font-bold text-sm mt-4 text-left">
                 <i class="fas fa-sign-out-alt w-5"></i> Logout
             </button>
         </div>
@@ -55,15 +61,16 @@
     </nav>
 
     <main class="flex-1 p-6 md:p-10 space-y-10 overflow-y-auto">
+        
         <header class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div class="card-bg p-8 rounded-[30px] flex justify-between items-center relative overflow-hidden group">
-                <div class="relative z-10">
+                <div>
                     <p class="text-gray-500 text-[10px] font-black uppercase tracking-[2px] mb-1">Main Balance</p>
                     <h2 id="balanceDisplay" class="text-4xl font-black neon-text italic">$0.0000</h2>
                 </div>
-                <div class="h-10 w-10 bg-[#00e676]/10 text-[#00e676] rounded-xl flex items-center justify-center">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
+                <button onclick="location.href='wallet.html'" class="h-10 w-10 bg-white/5 rounded-xl flex items-center justify-center hover:bg-[#00e676] hover:text-black transition-all">
+                    <i class="fas fa-plus text-xs"></i>
+                </button>
             </div>
 
             <div class="card-bg p-8 rounded-[30px] flex justify-between items-center border-b-4 border-blue-500/30">
@@ -85,19 +92,64 @@
 
         <section>
             <div class="flex justify-between items-end mb-8">
-                <h3 class="text-2xl font-black uppercase italic tracking-tighter">Fast <span class="text-[#00e676]">Earnings</span></h3>
+                <div>
+                    <h3 class="text-2xl font-black uppercase italic tracking-tighter">Fast <span class="text-[#00e676]">Earnings</span></h3>
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mt-1">Micro tasks with instant payout</p>
+                </div>
+                <a href="tasks.html" class="text-xs font-black text-[#00e676] uppercase tracking-widest hover:underline">See All <i class="fas fa-arrow-right ml-1"></i></a>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="card-bg p-8 rounded-[40px] text-center group hover:border-[#00e676] transition-all cursor-pointer">
-                    <div class="h-16 w-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-play text-red-500 text-2xl"></i>
+                <div onclick="location.href='video.html'" class="card-bg p-8 rounded-[40px] text-center group hover:border-[#00e676] transition-all cursor-pointer">
+                    <div class="h-20 w-20 bg-red-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:rotate-6 transition-transform shadow-lg">
+                        <i class="fas fa-play text-red-500 text-3xl"></i>
                     </div>
-                    <h4 class="text-lg font-black uppercase italic mb-2">Watch Ads</h4>
-                    <span class="neon-btn block w-full font-black py-3 rounded-xl text-[10px] uppercase tracking-widest mt-4">Start</span>
+                    <h4 class="text-xl font-black uppercase italic mb-2 tracking-tight">Watch Ads</h4>
+                    <p class="text-gray-500 text-xs font-medium mb-6">Earn $0.005 per 30s video</p>
+                    <span class="neon-btn block w-full font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest">Start Watching</span>
                 </div>
+
+                <div onclick="location.href='spin.html'" class="card-bg p-8 rounded-[40px] text-center group hover:border-[#00e676] transition-all cursor-pointer">
+                    <div class="h-20 w-20 bg-yellow-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:animate-spin transition-transform shadow-lg">
+                        <i class="fas fa-dharmachakra text-yellow-500 text-3xl"></i>
+                    </div>
+                    <h4 class="text-xl font-black uppercase italic mb-2 tracking-tight">Lucky Spin</h4>
+                    <p class="text-gray-500 text-xs font-medium mb-6">Win up to $1.00 every hour</p>
+                    <span class="neon-btn block w-full font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest">Spin Now</span>
                 </div>
+
+                <div onclick="location.href='bonus.html'" class="card-bg p-8 rounded-[40px] text-center group hover:border-[#00e676] transition-all cursor-pointer relative overflow-hidden">
+                    <div class="h-20 w-20 bg-cyan-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-lg">
+                        <i class="fas fa-gift text-cyan-500 text-3xl"></i>
+                    </div>
+                    <h4 class="text-xl font-black uppercase italic mb-2 tracking-tight">Daily Gift</h4>
+                    <span class="neon-btn block w-full font-black py-4 rounded-2xl text-[10px] uppercase tracking-widest">Claim Now</span>
+                </div>
+            </div>
         </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <section class="card-bg rounded-[35px] overflow-hidden">
+                <div class="p-6 bg-white/5 border-b border-gray-800">
+                    <span class="font-black uppercase italic tracking-widest text-sm"><i class="fas fa-trophy text-yellow-500 mr-2"></i> Top Earners</span>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="flex justify-between items-center p-4 bg-white/5 rounded-2xl">
+                        <div class="flex items-center gap-4">
+                            <span class="text-yellow-500 font-black italic text-xl">01</span>
+                            <img src="https://ui-avatars.com/api/?name=Alex" class="h-8 w-8 rounded-full">
+                            <p class="text-sm font-black uppercase">Alex_Pro</p>
+                        </div>
+                        <p class="text-sm font-black neon-text italic">$1,450.50</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-[#00e676] p-8 rounded-[35px] text-black flex flex-col justify-center items-center text-center relative overflow-hidden">
+                <h3 class="text-3xl font-black uppercase italic tracking-tighter mb-2 leading-none">Refer & Get <br> <span class="text-4xl underline">10% Forever</span></h3>
+                <button class="bg-black text-white px-10 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest mt-4">Copy Invite Link</button>
+            </section>
+        </div>
     </main>
 
     <script type="module">
@@ -117,30 +169,20 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // ইউজার লগইন আছে কি না চেক করা
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // ইউজার লগইন থাকলে ডাটা দেখাবে
-                const emailPrefix = user.email.split('@')[0];
-                document.getElementById('userNameDisplay').innerText = emailPrefix.toUpperCase();
-                document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${emailPrefix}&background=00e676&color=000`;
-                
-                // এখানে পরবর্তীতে Firestore থেকে ব্যালেন্স আনা যাবে
+                const name = user.email.split('@')[0].toUpperCase();
+                document.getElementById('userNameDisplay').innerText = name;
+                document.getElementById('userAvatar').src = `https://ui-avatars.com/api/?name=${name}&background=00e676&color=000`;
                 document.getElementById('balanceDisplay').innerText = "$0.0000";
             } else {
-                // লগইন না থাকলে লগইন পেজে পাঠিয়ে দিবে
                 window.location.href = "login.html";
             }
         });
 
-        // লগআউট হ্যান্ডলার
         document.getElementById('logoutBtn').addEventListener('click', () => {
-            signOut(auth).then(() => {
-                window.location.href = "login.html";
-            }).catch((error) => {
-                alert("Error logging out: " + error.message);
-            });
+            signOut(auth).then(() => { window.location.href = "login.html"; });
         });
     </script>
 </body>
-</html>
+                                                                                                                                                                     </html>
