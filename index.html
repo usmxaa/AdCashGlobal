@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join AdCashGlobal | Start Earning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'inter': ['Inter', 'sans-serif'], },
+                    colors: {
+                        'dark-bg': '#0a0d15',
+                        'card-bg': '#1e2632',
+                        'primary-green': '#00e676',
+                        'input-bg': '#131924',
+                        'border-gray': '#313d4f',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: #0a0d15; }
+        .card-shadow { box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4); }
+        .neon-btn { transition: 0.3s; position: relative; overflow: hidden; }
+        .neon-btn:hover { box-shadow: 0 0 25px rgba(0, 230, 118, 0.4); transform: translateY(-2px); }
+        .bg-glow {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 230, 118, 0.05) 0%, transparent 50%);
+            z-index: -1;
+        }
+        /* Loading Overlay */
+        #loader {
+            display: none; position: fixed; inset: 0; background: rgba(10, 13, 21, 0.9);
+            z-index: 100; flex-direction: column; align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col font-inter">
+    <div class="bg-glow"></div>
+
+    <div id="loader">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-primary-green mb-4"></div>
+        <p class="text-xs font-black uppercase tracking-widest text-primary-green">Connecting to Server...</p>
+    </div>
+
+    <header class="w-full flex justify-between items-center p-5 px-6 lg:px-12 border-b border-border-gray sticky top-0 bg-dark-bg/80 backdrop-blur-lg z-50">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='index.html'">
+            <div class="h-10 w-10 bg-primary-green rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,230,118,0.3)]">
+                <span class="text-black text-2xl font-black italic">A</span>
+            </div>
+            <span class="text-xl font-black tracking-tight italic uppercase">AdCash<span class="text-primary-green">Global</span></span>
+        </div>
+        
+        <div class="flex items-center gap-6">
+            <span class="hidden md:block text-gray-500 text-[10px] font-black uppercase tracking-widest">Already a member?</span>
+            <button onclick="window.location.href='login.html'" class="bg-white/5 text-white px-6 py-2.5 rounded-xl font-black text-xs border border-gray-800 hover:border-primary-green transition uppercase tracking-widest">Login</button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex items-center justify-center p-5 py-12">
+        <div class="w-full max-w-7xl flex flex-col lg:flex-row gap-12 items-center">
+            
+            <div class="flex-1 text-center lg:text-left space-y-8">
+                <h1 class="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] italic uppercase">
+                    Free to <span class="text-primary-green">Join</span> <br> Easy to <span class="text-gray-500">Earn</span>
+                </h1>
+                <p class="text-gray-500 font-bold text-lg max-w-lg mx-auto lg:mx-0">
+                    Get paid for your opinion and time. Join thousands of users worldwide and start earning today.
+                </p>
+
+                <div class="flex flex-wrap justify-center lg:justify-start gap-4 opacity-50">
+                    <div class="flex items-center gap-2 bg-card-bg px-4 py-2 rounded-full border border-gray-800">
+                        <i class="fas fa-bolt text-primary-green text-xs"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest">Instant Payouts</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-card-bg px-4 py-2 rounded-full border border-gray-800">
+                        <i class="fas fa-shield-halved text-primary-green text-xs"></i>
+                        <span class="text-[10px] font-black uppercase tracking-widest">Secure System</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full max-w-md bg-card-bg p-8 md:p-10 rounded-[45px] border border-border-gray card-shadow relative">
+                <div class="absolute -top-6 -right-6 h-20 w-20 bg-primary-green text-black rounded-full flex flex-col items-center justify-center font-black leading-none rotate-12 border-8 border-dark-bg shadow-xl">
+                    <span class="text-[9px]">BONUS</span>
+                    <span class="text-xl">$0.50</span>
+                    <span class="text-[7px] uppercase tracking-tighter">On Join</span>
+                </div>
+
+                <h2 class="text-3xl font-black text-center mb-8 italic uppercase tracking-tighter">Create <span class="text-primary-green">Account</span></h2>
+                
+                <form id="signupForm" class="space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Full Name</label>
+                        <input type="text" id="username" required placeholder="Ex: Mitchell Carter" class="w-full bg-input-bg p-5 rounded-2xl border border-border-gray text-white font-bold focus:border-primary-green outline-none transition">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Email Address</label>
+                        <input type="email" id="email" required placeholder="name@example.com" class="w-full bg-input-bg p-5 rounded-2xl border border-border-gray text-white font-bold focus:border-primary-green outline-none transition">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black text-gray-500 uppercase ml-2 tracking-widest">Set Password</label>
+                        <input type="password" id="password" required placeholder="••••••••" class="w-full bg-input-bg p-5 rounded-2xl border border-border-gray text-white font-bold focus:border-primary-green outline-none transition">
+                    </div>
+                    
+                    <button type="submit" id="submitBtn" class="w-full bg-primary-green text-black font-black py-5 rounded-2xl text-lg tracking-widest neon-btn uppercase italic shadow-[0_10px_20px_rgba(0,230,118,0.2)]">
+                        Join Now
+                    </button>
+                </form>
+                
+                <p class="text-center text-gray-500 text-[10px] mt-8 font-black uppercase tracking-widest leading-loose">
+                    By joining, you agree to our <a href="#" class="text-white underline">Terms of Service</a> and <a href="#" class="text-white underline">Privacy Policy</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_B9Bu8cnavz5I1sFrXCdPRfTQL1Vhbuc",
+            authDomain: "adcashglobal-3ab99.firebaseapp.com",
+            projectId: "adcashglobal-3ab99",
+            storageBucket: "adcashglobal-3ab99.firebasestorage.app",
+            messagingSenderId: "810638190997",
+            appId: "1:810638190997:web:70705c6cca822c0472ee9c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ১. অটো-রিডাইরেক্ট লজিক: ইউজার লগইন থাকলে তাকে রেজিস্ট্রেশন পেজে থাকতে দিবে না
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = "index.html"; 
+            }
+        });
+
+        document.getElementById('signupForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('submitBtn');
+            const loader = document.getElementById('loader');
+
+            if (password.length < 6) {
+                alert("Security Error: Password must be at least 6 characters!");
+                return;
+            }
+
+            // UI Feedback
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+            loader.style.display = "flex";
+
+            try {
+                // ২. Firebase Auth এ ইউজার তৈরি
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // ৩. Firestore এ নতুন ইউজারের ব্যালেন্স এবং প্রোফাইল সেভ
+                await setDoc(doc(db, "users", user.uid), {
+                    name: name,
+                    email: email,
+                    balance: 0.50, // $0.50 Joining Bonus
+                    quizzesDone: 0,
+                    captchasDone: 0,
+                    dailyStreak: 0,
+                    lastDailyClaim: 0,
+                    referEarnings: 0,
+                    joinedAt: new Date().toISOString()
+                });
+
+                // সাকসেস মেসেজ
+                alert("Account Created! You earned $0.50 bonus.");
+                window.location.href = "index.html"; 
+
+            } catch (error) {
+                loader.style.display = "none";
+                btn.disabled = false;
+                btn.innerText = "Join Now";
+                
+                let errorMsg = "Registration Failed!";
+                if(error.code === 'auth/email-already-in-use') errorMsg = "Email is already in use!";
+                if(error.code === 'auth/invalid-email') errorMsg = "Invalid email address!";
+                
+                alert(errorMsg);
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
