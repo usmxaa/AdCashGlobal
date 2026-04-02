@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bonus | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; color: white; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .disabled-btn { background: #161b22 !important; color: #4b5563 !important; cursor: not-allowed; border: 1px solid #30363d; box-shadow: none !important; transform: none !important; }
+        .glow-effect { box-shadow: 0 0 40px rgba(0, 230, 118, 0.25); }
+        .bonus-card { background: linear-gradient(145deg, #1e2632, #131924); border: 1px solid #30363d; }
+    </style>
+</head>
+<body class="p-6 flex items-center justify-center min-h-screen">
+
+    <div class="max-w-md w-full mx-auto text-center">
+        <a href="index.html" class="absolute top-8 left-6 h-12 w-12 bg-[#1e2632] rounded-2xl flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition shadow-lg">
+            <i class="fas fa-arrow-left text-sm"></i>
+        </a>
+
+        <div class="bg-gradient-to-br from-[#00e676] to-[#00c853] p-14 rounded-[55px] mb-8 shadow-2xl relative overflow-hidden glow-effect group">
+            <div class="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
+            <i class="fas fa-gift text-black text-7xl animate-bounce group-hover:scale-110 transition-transform"></i>
+            <h1 class="text-black text-3xl font-black mt-6 italic tracking-tighter uppercase">Daily <span class="opacity-60 text-2xl">Reward</span></h1>
+        </div>
+        
+        <div class="bonus-card p-10 rounded-[45px] shadow-2xl relative">
+            <div id="status-icon" class="mb-5 text-[#00e676] text-3xl">
+                <i class="fas fa-calendar-check animate-pulse"></i>
+            </div>
+            
+            <h2 id="bonus-status" class="text-gray-400 font-black text-[10px] mb-8 leading-relaxed uppercase tracking-[4px]">
+                Checking Gift Status...
+            </h2>
+
+            <button id="claim-btn" class="disabled-btn w-full bg-[#00e676] text-black font-black py-6 rounded-[25px] uppercase tracking-[3px] text-sm shadow-[0_10px_20px_rgba(0,230,118,0.2)] hover:scale-[1.02] active:scale-95 transition-all" disabled>
+                Syncing...
+            </button>
+
+            <div id="timer-text" class="hidden mt-8 p-4 bg-black/40 rounded-2xl border border-gray-800/50">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-[3px] mb-1">Next Unlock In</p>
+                <span id="countdown" class="text-[#00e676] font-black text-xl tracking-widest italic">--:--:--</span>
+            </div>
+        </div>
+
+        <div class="mt-10 flex flex-col gap-2">
+            <p class="text-[9px] text-gray-600 font-black uppercase tracking-[5px]">Current Streak: <span id="streak-count" class="text-white">0</span> Days</p>
+            <div class="h-1 w-24 bg-gray-800 mx-auto rounded-full">
+                <div id="streak-bar" class="h-full bg-[#00e676] rounded-full transition-all duration-1000" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_B9Bu8cnavz5I1sFrXCdPRfTQL1Vhbuc",
+            authDomain: "adcashglobal-3ab99.firebaseapp.com",
+            projectId: "adcashglobal-3ab99",
+            storageBucket: "adcashglobal-3ab99.firebasestorage.app",
+            messagingSenderId: "810638190997",
+            appId: "1:810638190997:web:70705c6cca822c0472ee9c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const BONUS_AMOUNT = 0.050; // $0.05 প্রতি ক্লেইমে
+        const COOLDOWN_MS = 24 * 60 * 60 * 1000; // ২৪ ঘণ্টা
+        let countdownInterval;
+        let currentUser = null;
+
+        // পেজ ইনিশিয়ালাইজেশন
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                const userRef = doc(db, "users", user.uid);
+                
+                onSnapshot(userRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        updateUI(docSnap.data());
+                    }
+                });
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        function updateUI(data) {
+            const lastClaim = data.lastDailyClaim || 0;
+            const now = Date.now();
+            const timeLeft = lastClaim + COOLDOWN_MS - now;
+
+            const btn = document.getElementById('claim-btn');
+            const status = document.getElementById('bonus-status');
+            const timerSection = document.getElementById('timer-text');
+            const streakDisplay = document.getElementById('streak-count');
+            const streakBar = document.getElementById('streak-bar');
+
+            // স্ট্রিক আপডেট (সর্বোচ্চ ৭ দিন হিসেবে বার দেখাবে)
+            const streak = data.dailyStreak || 0;
+            streakDisplay.innerText = streak;
+            streakBar.style.width = `${Math.min((streak / 7) * 100, 100)}%`;
+
+            if (timeLeft > 0) {
+                // অলরেডি ক্লেইম করা হয়েছে
+                btn.disabled = true;
+                btn.classList.add('disabled-btn');
+                btn.innerText = "ALREADY CLAIMED";
+                status.innerText = "YOUR GIFT BOX IS CURRENTLY EMPTY";
+                timerSection.classList.remove('hidden');
+                startTimer(timeLeft);
+            } else {
+                // ক্লেইম করার জন্য তৈরি
+                btn.disabled = false;
+                btn.classList.remove('disabled-btn');
+                btn.innerText = "OPEN GIFT BOX";
+                status.innerText = "A NEW SURPRISE GIFT IS WAITING FOR YOU!";
+                timerSection.classList.add('hidden');
+                if(countdownInterval) clearInterval(countdownInterval);
+            }
+        }
+
+        function startTimer(duration) {
+            if(countdownInterval) clearInterval(countdownInterval);
+            const countdownEl = document.getElementById('countdown');
+            
+            let remaining = duration;
+            countdownInterval = setInterval(() => {
+                remaining -= 1000;
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    location.reload();
+                    return;
+                }
+
+                const h = Math.floor(remaining / 3600000);
+                const m = Math.floor((remaining % 3600000) / 60000);
+                const s = Math.floor((remaining % 60000) / 1000);
+                
+                countdownEl.innerText = 
+                    `${h.toString().padStart(2, '0')}H : ${m.toString().padStart(2, '0')}M : ${s.toString().padStart(2, '0')}S`;
+            }, 1000);
+        }
+
+        // ক্লেইম বাটন ক্লিক লজিক
+        document.getElementById('claim-btn').onclick = async () => {
+            if (!currentUser) return;
+
+            const btn = document.getElementById('claim-btn');
+            btn.disabled = true;
+            btn.innerText = "OPENING...";
+
+            try {
+                const userRef = doc(db, "users", currentUser.uid);
+                await updateDoc(userRef, {
+                    balance: increment(BONUS_AMOUNT),
+                    lastDailyClaim: Date.now(),
+                    dailyStreak: increment(1)
+                });
+
+                // সাকসেস মেসেজ
+                alert(`🎊 CONGRATULATIONS! \n\nYou've received $${BONUS_AMOUNT.toFixed(3)} Joining Bonus!`);
+                
+            } catch (error) {
+                console.error("Claim Error:", error);
+                alert("Synchronization failed. Please try again.");
+                btn.disabled = false;
+                btn.innerText = "OPEN GIFT BOX";
+            }
+        };
+    </script>
+</body>
+</html>

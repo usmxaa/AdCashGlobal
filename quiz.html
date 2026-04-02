@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Quiz | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .option-btn { background: #1e2632; transition: 0.2s; border: 1px solid #30363d; cursor: pointer; }
+        .option-btn:hover { border-color: #00e676; background: #252f3d; }
+        .option-btn:active { transform: scale(0.95); }
+        .correct { background: #00e676 !important; color: black !important; border-color: #00e676 !important; font-weight: 900; }
+        .wrong { background: #ef4444 !important; color: white !important; border-color: #ef4444 !important; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-quiz { animation: slideIn 0.4s ease-out; }
+    </style>
+</head>
+<body class="p-6 flex flex-col items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-md animate-quiz">
+        <div class="flex justify-between items-center mb-8">
+            <a href="tasks.html" class="h-10 w-10 bg-[#1e2632] rounded-full flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="px-4 py-1 bg-[#00e676]/10 border border-[#00e676]/30 rounded-full">
+                <p class="text-[10px] text-[#00e676] font-black uppercase tracking-widest">Score: <span id="score-display">0</span>/10</p>
+            </div>
+        </div>
+
+        <div class="bg-[#1e2632] p-10 rounded-[45px] border-b-8 border-[#00e676] text-center mb-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gray-800">
+                <div id="timer-bar" class="h-full bg-[#00e676] transition-all duration-1000 w-full"></div>
+            </div>
+            <p id="q-count" class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Question 1</p>
+            <h2 id="question-text" class="text-5xl font-black tracking-tighter italic">Loading...</h2>
+        </div>
+
+        <div id="options-container" class="grid grid-cols-2 gap-4">
+            </div>
+
+        <p class="text-center text-[10px] text-gray-600 mt-10 font-black uppercase tracking-[4px]">Reward for 8+ Correct Answers</p>
+    </div>
+
+    <div id="quizModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center hidden p-6 backdrop-blur-md">
+        <div class="bg-[#1e2632] p-10 rounded-[45px] border border-[#00e676]/30 text-center w-full max-w-sm shadow-2xl">
+            <div class="h-20 w-20 bg-[#00e676]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-trophy text-4xl text-[#00e676]"></i>
+            </div>
+            <h1 class="text-3xl font-black mb-2 italic">EXCELLENT!</h1>
+            <p class="text-gray-400 text-[10px] mb-8 uppercase font-black tracking-[3px]">Quiz Reward Credited</p>
+            <h2 id="reward-display" class="text-5xl font-black text-[#00e676] mb-8 tracking-tighter">$0.0000</h2>
+            <button onclick="location.href='tasks.html'" class="w-full bg-[#00e676] text-black font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest hover:scale-105 transition">COLLECT & EXIT</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData, syncGlobalSettings, updateDoc, doc, increment } from './core.js';
+
+        let currentQuestion = 1;
+        let score = 0;
+        let correctAnswer = 0;
+        let totalQuestions = 10;
+        let quizReward = 0.010; // Default
+        let isAnswering = false;
+
+        // ১. এডমিন সেটিংস এবং ইউজার ডাটা ইনিশিয়ালাইজেশন
+        async function initQuiz() {
+            syncGlobalSettings((settings) => {
+                if (settings && settings.quizReward) {
+                    quizReward = settings.quizReward;
+                }
+            });
+
+            syncUserData(() => {
+                // জাস্ট ডাটা কানেকশন চেক করার জন্য
+                generateQuestion();
+            });
+        }
+
+        // ২. র্যান্ডম প্রশ্ন জেনারেটর
+        function generateQuestion() {
+            if (currentQuestion > totalQuestions) {
+                finishQuiz();
+                return;
+            }
+
+            isAnswering = false;
+            document.getElementById('q-count').innerText = `Question ${currentQuestion}`;
+            document.getElementById('score-display').innerText = score;
+
+            const n1 = Math.floor(Math.random() * 30) + 5;
+            const n2 = Math.floor(Math.random() * 20) + 2;
+            const ops = ['+', '-', '*'];
+            const op = ops[Math.floor(Math.random() * ops.length)];
+
+            let qStr = "";
+            if (op === '+') { correctAnswer = n1 + n2; qStr = `${n1} + ${n2}`; }
+            else if (op === '-') { correctAnswer = n1 - n2; qStr = `${n1} - ${n2}`; }
+            else if (op === '*') { 
+                const s1 = Math.floor(Math.random() * 10) + 2;
+                const s2 = Math.floor(Math.random() * 10) + 2;
+                correctAnswer = s1 * s2; 
+                qStr = `${s1} × ${s2}`; 
+            }
+
+            document.getElementById('question-text').innerText = qStr;
+            renderOptions();
+        }
+
+        // ৩. অপশন বাটন তৈরি
+        function renderOptions() {
+            const container = document.getElementById('options-container');
+            container.innerHTML = "";
+            
+            let choices = [correctAnswer];
+            while (choices.length < 4) {
+                let offset = Math.floor(Math.random() * 10) + 1;
+                let fake = Math.random() > 0.5 ? correctAnswer + offset : correctAnswer - offset;
+                if (!choices.includes(fake)) choices.push(fake);
+            }
+
+            choices.sort(() => Math.random() - 0.5);
+
+            choices.forEach(val => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn p-6 rounded-[25px] font-black text-xl shadow-lg";
+                btn.innerText = val;
+                btn.onclick = () => handleAnswer(btn, val);
+                container.appendChild(btn);
+            });
+        }
+
+        // ৪. উত্তর যাচাই লজিক
+        function handleAnswer(btn, selected) {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            const allBtns = document.querySelectorAll('.option-btn');
+            
+            if (selected === correctAnswer) {
+                btn.classList.add('correct');
+                score++;
+                // সাউন্ড বা হ্যাপটিক ফিডব্যাক এখানে যোগ করতে পারেন
+            } else {
+                btn.classList.add('wrong');
+                allBtns.forEach(b => {
+                    if (parseInt(b.innerText) === correctAnswer) b.classList.add('correct');
+                });
+            }
+
+            setTimeout(() => {
+                currentQuestion++;
+                generateQuestion();
+            }, 1000);
+        }
+
+        // ৫. কুইজ শেষ এবং ডাটাবেজ আপডেট
+        async function finishQuiz() {
+            if (score >= 8) {
+                const user = auth.currentUser;
+                if (!user) return;
+
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    await updateDoc(userRef, {
+                        balance: increment(quizReward),
+                        quizzesDone: increment(1)
+                    });
+                    
+                    document.getElementById('reward-display').innerText = `$${quizReward.toFixed(4)}`;
+                    document.getElementById('quizModal').classList.remove('hidden');
+                } catch (e) {
+                    console.error("Quiz Save Error:", e);
+                    alert("Sync Error! Check Internet.");
+                    location.href = 'tasks.html';
+                }
+            } else {
+                alert(`Quiz Over! You scored ${score}/10. \n\nYou need at least 8 correct answers to earn reward.`);
+                location.href = 'tasks.html';
+            }
+        }
+
+        initQuiz();
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promo Code | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .promo-input:focus { border-color: #00e676; box-shadow: 0 0 30px rgba(0, 230, 118, 0.15); }
+        @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .animate-bounce-slow { animation: bounce-slow 3s infinite ease-in-out; }
+        .glass-bg { background: rgba(30, 38, 50, 0.7); backdrop-filter: blur(15px); }
+    </style>
+</head>
+<body class="p-6 min-h-screen flex items-center justify-center">
+
+    <div class="w-full max-w-md relative">
+        <a href="index.html" class="absolute -top-16 left-0 h-12 w-12 bg-[#1e2632] rounded-full flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition shadow-xl">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+
+        <header class="text-center mb-10">
+            <div class="h-20 w-20 bg-[#00e676]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 animate-bounce-slow border border-[#00e676]/20 shadow-[0_0_20px_rgba(0,230,118,0.1)]">
+                <i class="fas fa-ticket-alt text-[#00e676] text-4xl"></i>
+            </div>
+            <h1 class="text-3xl font-black uppercase tracking-tighter italic">Promo <span class="text-gray-500">Center</span></h1>
+            <p class="text-[10px] text-[#00e676] font-black uppercase tracking-[4px] mt-2">Claim Your Bonus Rewards</p>
+        </header>
+
+        <div class="glass-bg p-8 md:p-10 rounded-[50px] border border-gray-800 shadow-2xl relative">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#00e676] text-black px-6 py-1.5 rounded-full text-[10px] font-black uppercase shadow-lg italic">
+                Balance: <span id="main-balance-text">$0.0000</span>
+            </div>
+
+            <p class="text-sm text-gray-400 mb-8 text-center leading-relaxed font-medium">Join our Telegram or follow our Socials to find secret codes. Each code gives a unique bonus!</p>
+            
+            <div class="space-y-4">
+                <input type="text" id="promo-input" placeholder="ENTER CODE HERE" 
+                    class="w-full bg-black/60 p-6 rounded-3xl border border-gray-700 text-center font-black tracking-[5px] text-[#00e676] outline-none transition-all promo-input uppercase placeholder:text-gray-800 placeholder:tracking-normal">
+                
+                <button id="redeemBtn" class="w-full bg-white text-black font-black py-5 rounded-3xl uppercase tracking-widest hover:bg-[#00e676] hover:scale-[1.02] active:scale-95 transition-all shadow-xl">
+                    Redeem Reward
+                </button>
+            </div>
+
+            <div class="mt-10 flex justify-center gap-8 opacity-40">
+                <a href="#" target="_blank"><i class="fab fa-telegram text-2xl hover:text-[#00e676] transition"></i></a>
+                <a href="#" target="_blank"><i class="fab fa-youtube text-2xl hover:text-[#00e676] transition"></i></a>
+                <a href="#" target="_blank"><i class="fab fa-twitter text-2xl hover:text-[#00e676] transition"></i></a>
+            </div>
+        </div>
+
+        <p class="text-center text-[10px] text-gray-700 mt-12 font-black uppercase tracking-[3px]">One-time use per code • v4.0</p>
+    </div>
+
+    <div id="promoModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center hidden p-6 backdrop-blur-md">
+        <div class="bg-[#1e2632] p-10 rounded-[45px] border border-[#00e676]/30 text-center w-full max-w-sm shadow-2xl animate-quiz">
+            <div class="h-24 w-24 bg-[#00e676]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-gift text-5xl text-[#00e676]"></i>
+            </div>
+            <h1 class="text-3xl font-black mb-2 italic">AWESOME!</h1>
+            <p id="promo-msg" class="text-gray-400 text-[10px] mb-8 font-black uppercase tracking-[3px]">Code Applied Successfully</p>
+            <button id="closeModal" class="w-full bg-[#00e676] text-black font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest hover:scale-105 transition">GREAT!</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData, updateDoc, doc, getDoc, arrayUnion, increment } from './core.js';
+
+        const redeemBtn = document.getElementById('redeemBtn');
+        const promoInput = document.getElementById('promo-input');
+        const modal = document.getElementById('promoModal');
+
+        // ১. ব্যালেন্স সিঙ্ক
+        syncUserData((data) => {
+            if(data) {
+                document.getElementById('main-balance-text').innerText = `$${(data.balance || 0).toFixed(4)}`;
+            }
+        });
+
+        // ২. প্রমো কোড চেক এবং রিডিম
+        redeemBtn.onclick = async () => {
+            const code = promoInput.value.trim().toUpperCase();
+            const user = auth.currentUser;
+
+            if (!code) {
+                alert("Please enter a valid promo code!");
+                return;
+            }
+
+            if (!user) {
+                alert("Login required!");
+                return;
+            }
+
+            redeemBtn.disabled = true;
+            redeemBtn.innerText = "VERIFYING...";
+
+            try {
+                // ৩. ডাটাবেজ থেকে প্রমো কোড লিস্ট চেক
+                const promoRef = doc(db, "settings", "promos");
+                const promoSnap = await getDoc(promoRef);
+
+                if (!promoSnap.exists()) {
+                    alert("System busy. No codes available right now.");
+                    return;
+                }
+
+                const allPromos = promoSnap.data();
+                
+                // কোডটি ডাটাবেজে আছে কিনা যাচাই
+                if (allPromos.hasOwnProperty(code)) {
+                    const bonusAmount = allPromos[code];
+
+                    // ৪. ইউজার কি আগে এই কোড ব্যবহার করেছে?
+                    const userRef = doc(db, "users", user.uid);
+                    const userSnap = await getDoc(userRef);
+                    const userData = userSnap.data();
+
+                    if (userData.usedPromos && userData.usedPromos.includes(code)) {
+                        alert("You've already used this code once!");
+                    } else {
+                        // ৫. রিওয়ার্ড ক্রেডিট এবং ব্যবহৃত কোড ট্র্যাকিং
+                        await updateDoc(userRef, {
+                            balance: increment(bonusAmount),
+                            usedPromos: arrayUnion(code)
+                        });
+
+                        // সাকসেস মেসেজ দেখানো
+                        document.getElementById('promo-msg').innerText = `You received $${bonusAmount.toFixed(3)} bonus!`;
+                        modal.classList.remove('hidden');
+                        promoInput.value = "";
+                    }
+                } else {
+                    alert("Invalid or Expired Promo Code!");
+                }
+
+            } catch (error) {
+                console.error("Promo Error:", error);
+                alert("Connection failed. Try again.");
+            } finally {
+                redeemBtn.disabled = false;
+                redeemBtn.innerText = "Redeem Reward";
+            }
+        };
+
+        // ক্লোজ বাটন
+        document.getElementById('closeModal').onclick = () => modal.classList.add('hidden');
+    </script>
+</body>
+</html>

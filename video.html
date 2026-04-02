@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Ads Center | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; font-family: 'Inter', sans-serif; }
+        .video-slot { background: rgba(30, 38, 50, 0.8); border: 1px solid #313d4f; transition: 0.3s; }
+        .video-slot.completed { opacity: 0.4; pointer-events: none; border-color: #1e2632; background: #05070a; }
+        .progress-bar { background: linear-gradient(90deg, #00e676 0%, #00c853 100%); transition: width 0.5s ease; }
+        .loading-spinner { border-top-color: #00e676; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-white p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-black uppercase tracking-tighter italic">Video <span class="text-[#00e676]">Rewards</span></h1>
+                <p class="text-gray-500 text-sm" id="status-text">Fetching latest ads configuration...</p>
+            </div>
+            <a href="index.html" class="h-12 w-12 bg-[#1e2632] rounded-full flex items-center justify-center border border-gray-700 hover:border-white transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-[#1e2632] p-6 rounded-[30px] border border-gray-800 shadow-xl">
+                <p class="text-gray-500 text-xs font-bold uppercase mb-2">My Balance</p>
+                <h2 class="text-3xl font-black text-[#00e676]" id="main-balance">$0.0000</h2>
+            </div>
+            <div class="bg-[#1e2632] p-6 rounded-[30px] border border-gray-800 md:col-span-2">
+                <div class="flex justify-between mb-2 px-1">
+                    <p class="text-gray-500 text-xs font-bold uppercase tracking-widest">Daily Progress (<span id="video-count">0</span>/<span id="total-limit">0</span>)</p>
+                    <p class="text-[#00e676] text-xs font-bold" id="progress-percent">0%</p>
+                </div>
+                <div class="w-full bg-black/40 h-4 rounded-full overflow-hidden border border-gray-800">
+                    <div id="progress-bar" class="progress-bar h-full w-[0%] rounded-full shadow-[0_0_15px_rgba(0,230,118,0.3)]"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="video-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            </div>
+
+        <div class="mt-12 text-center p-8 border-t border-gray-800">
+            <p id="timer-display" class="text-yellow-500 font-bold hidden mb-2 italic">Waiting for daily reset...</p>
+            <p class="text-gray-500 text-[10px] uppercase tracking-[4px]">Secure Ad-Server System • AdCashGlobal v4.0</p>
+        </div>
+    </div>
+
+    <div id="ad-overlay" class="fixed inset-0 bg-black/95 z-[100] hidden flex flex-col items-center justify-center">
+        <div class="loading-spinner h-20 w-20 border-4 border-gray-800 rounded-full mb-6"></div>
+        <p class="text-[#00e676] font-black text-xl animate-pulse tracking-widest uppercase italic">Streaming Ad...</p>
+        <p class="text-gray-400 text-sm mt-4 font-mono" id="ad-timer">Please wait 15s</p>
+        <div class="mt-8 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-full">
+            <p class="text-red-500 text-[10px] font-black uppercase tracking-widest">Do not close or refresh</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData, syncGlobalSettings, updateDoc, doc, increment } from './core.js';
+
+        let rewardPerVideo = 0.005; // Default if admin not set
+        let totalLimit = 10;        // Default limit
+        let userWatched = 0;
+        let isAdRunning = false;
+
+        // ১. সিস্টেম ইনিশিয়ালাইজ করা
+        async function initApp() {
+            // এডমিন থেকে সেটিংস সিঙ্ক করা
+            syncGlobalSettings((settings) => {
+                if (settings) {
+                    rewardPerVideo = settings.videoReward || 0.005;
+                    totalLimit = settings.videoLimit || 10;
+                    document.getElementById('total-limit').innerText = totalLimit;
+                    updateGridUI();
+                }
+            });
+
+            // ইউজারের ডাটা সিঙ্ক করা
+            syncUserData((data) => {
+                userWatched = data.videosWatched || 0;
+                document.getElementById('main-balance').innerText = `$${(data.balance || 0).toFixed(4)}`;
+                document.getElementById('video-count').innerText = userWatched;
+                updateGridUI();
+            });
+        }
+
+        // ২. ভিডিও গ্রিড তৈরি করা
+        function updateGridUI() {
+            const grid = document.getElementById('video-grid');
+            grid.innerHTML = '';
+
+            for (let i = 1; i <= totalLimit; i++) {
+                const isWatched = userWatched >= i;
+                const slot = document.createElement('div');
+                slot.className = `video-slot p-6 rounded-[35px] flex flex-col items-center text-center cursor-pointer group ${isWatched ? 'completed' : ''}`;
+                
+                slot.innerHTML = `
+                    <div class="h-16 w-16 bg-red-500/10 rounded-[22px] flex items-center justify-center mb-4 group-hover:scale-110 transition duration-500 shadow-lg">
+                        <i class="fas ${isWatched ? 'fa-check text-green-500' : 'fa-play text-red-500'} text-2xl"></i>
+                    </div>
+                    <h3 class="font-black text-[10px] uppercase tracking-widest mb-1 text-gray-400">Ad #${i}</h3>
+                    <p class="text-[#00e676] text-sm font-black italic mb-4">$${rewardPerVideo.toFixed(3)}</p>
+                    <button class="w-full bg-white/5 border border-white/10 py-3 rounded-2xl text-[9px] font-black group-hover:bg-[#00e676] group-hover:text-black transition uppercase tracking-tighter">
+                        ${isWatched ? 'COMPLETED' : 'WATCH NOW'}
+                    </button>
+                `;
+
+                if (!isWatched) {
+                    slot.onclick = () => startAd(i);
+                }
+                grid.appendChild(slot);
+            }
+
+            // প্রগ্রেস বার আপডেট
+            const percent = (userWatched / totalLimit) * 100;
+            document.getElementById('progress-bar').style.width = `${percent}%`;
+            document.getElementById('progress-percent').innerText = `${Math.floor(percent)}%`;
+            document.getElementById('status-text').innerText = `${totalLimit - userWatched} Ads available for you`;
+        }
+
+        // ৩. অ্যাড দেখানো শুরু
+        window.startAd = function(id) {
+            if (isAdRunning) return;
+            if (userWatched >= totalLimit) return alert("Daily limit reached!");
+
+            isAdRunning = true;
+            const overlay = document.getElementById('ad-overlay');
+            const timerText = document.getElementById('ad-timer');
+            let timeLeft = 15; // ১৫ সেকেন্ড অ্যাড
+
+            overlay.classList.remove('hidden');
+
+            const counter = setInterval(async () => {
+                timeLeft--;
+                timerText.innerText = `Please wait ${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(counter);
+                    await claimReward();
+                    overlay.classList.add('hidden');
+                    isAdRunning = false;
+                }
+            }, 1000);
+        };
+
+        // ৪. রিওয়ার্ড ক্লেইম করা
+        async function claimReward() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+                const userRef = doc(db, "users", user.uid);
+                await updateDoc(userRef, {
+                    balance: increment(rewardPerVideo),
+                    videosWatched: increment(1),
+                    lastVideoTime: Date.now()
+                });
+                console.log("Reward Added!");
+            } catch (err) {
+                console.error("Reward error:", err);
+                alert("Connection lost. Please try again.");
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>

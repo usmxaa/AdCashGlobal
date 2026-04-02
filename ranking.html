@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #080a0f; color: white; font-family: 'Inter', sans-serif; }
+        .rank-card { background: #161b22; transition: 0.3s; border: 1px solid #1f2937; position: relative; overflow: hidden; }
+        .rank-card:hover { transform: translateY(-3px); border-color: #00e676; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+        .top-row { border-left: 4px solid #00e676; background: linear-gradient(90deg, rgba(0, 230, 118, 0.1) 0%, transparent 100%); }
+        .gold-row { border-left: 4px solid #fbbf24; background: linear-gradient(90deg, rgba(251, 191, 36, 0.1) 0%, transparent 100%); }
+        .current-user-card { border: 1px solid #00e676 !important; background: rgba(0, 230, 118, 0.05); }
+    </style>
+</head>
+<body class="p-5 md:p-10">
+    <div class="max-w-md mx-auto">
+        
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-black uppercase tracking-tighter italic">
+                <i class="fas fa-crown text-yellow-500 mr-2"></i> TOP <span class="text-[#00e676]">EARNERS</span>
+            </h1>
+            <a href="index.html" class="h-10 w-10 bg-[#161b22] rounded-full flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition shadow-lg">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+
+        <div class="bg-gradient-to-br from-[#161b22] to-[#080a0f] p-6 rounded-[30px] border border-[#00e676]/30 mb-10 flex justify-between items-center shadow-2xl relative">
+            <div class="flex items-center gap-4">
+                <div class="h-14 w-14 bg-[#00e676]/10 rounded-full flex items-center justify-center border border-[#00e676] shadow-[0_0_15px_rgba(0,230,118,0.2)]">
+                    <i class="fas fa-trophy text-[#00e676] text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Global Rank</p>
+                    <h2 class="text-2xl font-black italic">#<span id="user-rank">...</span></h2>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Balance</p>
+                <h2 id="main-balance" class="text-2xl font-black text-[#00e676] italic">$0.0000</h2>
+            </div>
+        </div>
+
+        <div id="leaderboard-list" class="space-y-4">
+            <div class="text-center py-20 opacity-40">
+                <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#00e676] border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                <p class="mt-4 text-[10px] font-black uppercase tracking-[3px]">Syncing Rankings...</p>
+            </div>
+        </div>
+
+        <div class="mt-12 text-center p-6 border-t border-gray-900">
+            <p class="text-[10px] text-gray-700 font-black uppercase tracking-[4px]">Global Real-time Ranking System</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData } from './core.js';
+        import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ১. লিডারবোর্ড ডাটা লোড করা
+        async function loadLeaderboard() {
+            const listContainer = document.getElementById('leaderboard-list');
+            
+            try {
+                // টপ ৫০ জন আর্নারকে ব্যালেন্স অনুযায়ী সাজানো (Descending)
+                const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(50));
+                const querySnapshot = await getDocs(q);
+                
+                let html = "";
+                let rank = 1;
+                let foundUserRank = false;
+
+                querySnapshot.forEach((docSnap) => {
+                    const userData = docSnap.data();
+                    const isCurrentUser = auth.currentUser && docSnap.id === auth.currentUser.uid;
+                    const userName = userData.name || "Anonymous User";
+                    
+                    if (isCurrentUser) {
+                        document.getElementById('user-rank').innerText = rank;
+                        foundUserRank = true;
+                    }
+
+                    // র‍্যাঙ্ক অনুযায়ী স্টাইলিশ রো তৈরি
+                    const isGold = rank === 1;
+                    const isSilverBronze = rank === 2 || rank === 3;
+                    const rowClass = isGold ? 'gold-row' : (isSilverBronze ? 'top-row' : '');
+                    const crownIcon = isGold ? 'fa-crown text-yellow-500' : (rank === 2 ? 'fa-medal text-gray-400' : (rank === 3 ? 'fa-medal text-orange-500' : ''));
+
+                    html += `
+                        <div class="rank-card ${rowClass} ${isCurrentUser ? 'current-user-card' : ''} p-4 rounded-2xl flex justify-between items-center">
+                            <div class="flex items-center gap-4">
+                                <div class="w-8 font-black text-center">
+                                    ${crownIcon ? `<i class="fas ${crownIcon} text-[10px] block mb-1"></i>` : ''}
+                                    <span class="${rank <= 3 ? 'text-white' : 'text-gray-600'} text-sm">#${rank}</span>
+                                </div>
+                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=random&color=fff&bold=true" class="h-10 w-10 rounded-full border border-gray-800 shadow-md">
+                                <div>
+                                    <p class="font-bold text-sm ${isCurrentUser ? 'text-[#00e676]' : 'text-gray-200'}">
+                                        ${userName} ${isCurrentUser ? '<span class="text-[8px] bg-[#00e676]/20 px-2 py-0.5 rounded-full ml-1 uppercase">You</span>' : ''}
+                                    </p>
+                                    <p class="text-[9px] text-gray-500 uppercase font-bold tracking-tighter italic">Verified Member</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-black text-[#00e676] text-sm tracking-tighter italic">$${(userData.balance || 0).toFixed(4)}</p>
+                            </div>
+                        </div>
+                    `;
+                    rank++;
+                });
+
+                listContainer.innerHTML = html;
+
+                // যদি ইউজার টপ ৫০-এ না থাকে
+                if (!foundUserRank) {
+                    document.getElementById('user-rank').innerText = "50+";
+                }
+
+            } catch (error) {
+                console.error("Leaderboard Error:", error);
+                listContainer.innerHTML = `
+                    <div class="text-center py-10">
+                        <i class="fas fa-exclamation-triangle text-red-500 mb-2"></i>
+                        <p class="text-gray-500 text-[10px] uppercase font-black">Sync Failed. Check Internet.</p>
+                    </div>`;
+            }
+        }
+
+        // ২. ইউজারের নিজস্ব ব্যালেন্স সিঙ্ক এবং র‍্যাঙ্কিং রিফ্রেশ
+        syncUserData((data) => {
+            if (data) {
+                document.getElementById('main-balance').innerText = `$${(data.balance || 0).toFixed(4)}`;
+                loadLeaderboard(); // যখনই নিজের ডাটা আপডেট হবে, র‍্যাঙ্কিংও রিফ্রেশ হবে
+            }
+        });
+
+    </script>
+</body>
+</html>

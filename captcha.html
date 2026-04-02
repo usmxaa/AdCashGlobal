@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solve Captcha | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; color: white; font-family: 'Inter', sans-serif; overflow: hidden; }
+        .captcha-box {
+            background: linear-gradient(135deg, #1e2632 0%, #111827 100%);
+            border: 2px dashed #374151;
+            letter-spacing: 15px;
+            text-shadow: 0 0 12px rgba(0, 230, 118, 0.4);
+            user-select: none;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .input-focus:focus { border-color: #00e676; box-shadow: 0 0 20px rgba(0, 230, 118, 0.15); }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+        .error-shake { animation: shake 0.2s ease-in-out 0s 2; border-color: #ef4444 !important; }
+        .success-glow { animation: success-pulse 0.5s ease-out; }
+        @keyframes success-pulse {
+            0% { box-shadow: 0 0 0px #00e676; }
+            100% { box-shadow: 0 0 30px #00e676; }
+        }
+    </style>
+</head>
+<body class="p-6 min-h-screen flex items-center justify-center">
+
+    <div class="w-full max-w-md">
+        <div class="flex justify-between items-center mb-8">
+            <a href="index.html" class="h-12 w-12 bg-[#1e2632] rounded-2xl flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition shadow-lg">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-500 font-black uppercase tracking-[3px]">My Wallet</p>
+                <p id="main-balance" class="text-[#00e676] font-black text-xl italic tracking-tighter">$0.0000</p>
+            </div>
+        </div>
+
+        <div id="main-card" class="bg-[#1e2632] p-8 rounded-[45px] border border-gray-800 shadow-2xl relative overflow-hidden">
+            <h1 class="text-2xl font-black text-center mb-1 uppercase italic tracking-tighter">Fast <span class="text-[#00e676]">Verify</span></h1>
+            <p id="limit-text" class="text-center text-gray-500 text-[9px] font-black mb-8 uppercase tracking-[4px]">Syncing tasks...</p>
+
+            <div class="relative mb-8 group">
+                <div id="captcha-code" class="captcha-box h-28 w-full rounded-[30px] flex items-center justify-center text-4xl font-black italic text-[#00e676] select-none tracking-[15px]">
+                    ••••••
+                </div>
+                <button id="refreshBtn" class="absolute -top-3 -right-3 h-10 w-10 bg-black border border-gray-800 rounded-full flex items-center justify-center hover:text-[#00e676] transition shadow-xl active:rotate-180 duration-500">
+                    <i class="fas fa-sync-alt text-xs"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4" id="input-area">
+                <div class="relative">
+                    <input type="text" id="captcha-input" placeholder="Type Code Here" 
+                       class="w-full bg-black/40 border border-gray-800 rounded-[25px] p-6 text-center text-2xl font-black uppercase outline-none transition-all input-focus tracking-widest placeholder:text-gray-700 placeholder:tracking-normal">
+                </div>
+                
+                <button id="submitBtn" class="w-full bg-[#00e676] text-black font-black py-6 rounded-[25px] shadow-[0_10px_20px_rgba(0,230,118,0.2)] hover:scale-[1.02] active:scale-95 transition-all uppercase tracking-[4px] italic text-sm">
+                    Verify & Claim $0.002
+                </button>
+            </div>
+
+            <p class="text-center text-[8px] text-gray-600 mt-10 font-black uppercase tracking-[5px]">v4.2 Anti-Bot Protection</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ফায়ারবেস কনফিগারেশন
+        const firebaseConfig = {
+            apiKey: "AIzaSyD_B9Bu8cnavz5I1sFrXCdPRfTQL1Vhbuc",
+            authDomain: "adcashglobal-3ab99.firebaseapp.com",
+            projectId: "adcashglobal-3ab99",
+            storageBucket: "adcashglobal-3ab99.firebasestorage.app",
+            messagingSenderId: "810638190997",
+            appId: "1:810638190997:web:70705c6cca822c0472ee9c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentCaptcha = "";
+        const reward = 0.002;
+        let currentUser = null;
+
+        // ১. র্যান্ডম ক্যাপচা জেনারেট করা
+        function generateCaptcha() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+            let result = "";
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            currentCaptcha = result;
+            const codeDisplay = document.getElementById('captcha-code');
+            codeDisplay.innerText = result;
+            
+            // ইনপুট রিসেট
+            const inputEl = document.getElementById('captcha-input');
+            inputEl.value = "";
+            inputEl.classList.remove('error-shake');
+        }
+
+        // ২. ইউজার ডাটা এবং ব্যালেন্স চেক
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                const userRef = doc(db, "users", user.uid);
+                
+                onSnapshot(userRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        document.getElementById('main-balance').innerText = `$${parseFloat(data.balance || 0).toFixed(4)}`;
+                        
+                        // ডেইলি লিমিট চেক (যদি সেট করা থাকে)
+                        const done = data.captchasDone || 0;
+                        const limit = 500; // আপনি চাইলে এটি ডাটাবেজ থেকে আনতে পারেন
+                        
+                        if (done >= limit) {
+                            disableTask();
+                        } else {
+                            document.getElementById('limit-text').innerText = `Daily Limit: ${done}/${limit} Solved`;
+                            if(!currentCaptcha) generateCaptcha();
+                        }
+                    }
+                });
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // ৩. ক্যাপচা চেক এবং রিওয়ার্ড ক্রেডিট
+        async function checkCaptcha() {
+            if (!currentUser) return;
+
+            const inputEl = document.getElementById('captcha-input');
+            const submitBtn = document.getElementById('submitBtn');
+            const userInput = inputEl.value.trim().toUpperCase();
+
+            if (userInput === currentCaptcha) {
+                // UI অ্যানিমেশন এবং ডিজেবল
+                submitBtn.disabled = true;
+                submitBtn.innerText = "CREDITING...";
+                inputEl.classList.add('success-glow');
+
+                try {
+                    const userRef = doc(db, "users", currentUser.uid);
+                    await updateDoc(userRef, {
+                        balance: increment(reward),
+                        captchasDone: increment(1)
+                    });
+
+                    // সাকসেস হলে নতুন ক্যাপচা
+                    setTimeout(() => {
+                        generateCaptcha();
+                        inputEl.classList.remove('success-glow');
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = `Verify & Claim $${reward}`;
+                    }, 500);
+
+                } catch (error) {
+                    console.error("Update Error:", error);
+                    alert("Sync Error! Check connection.");
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Verify & Claim $0.002";
+                }
+            } else {
+                // ভুল হলে শেক অ্যানিমেশন
+                inputEl.classList.add('error-shake');
+                inputEl.value = "";
+                setTimeout(() => inputEl.classList.remove('error-shake'), 400);
+            }
+        }
+
+        function disableTask() {
+            document.getElementById('input-area').innerHTML = `
+                <div class="p-8 bg-red-500/10 border border-red-500/20 rounded-[30px] text-center">
+                    <i class="fas fa-clock text-2xl text-red-500 mb-3"></i>
+                    <p class="text-red-500 font-black uppercase text-xs tracking-widest">Limit Reached</p>
+                    <p class="text-gray-500 text-[9px] mt-1 font-bold uppercase tracking-widest">Come back after 24 hours</p>
+                </div>
+            `;
+            document.getElementById('captcha-code').innerText = "LOCK";
+            document.getElementById('refreshBtn').style.display = "none";
+            document.getElementById('limit-text').innerText = "DAILY QUOTA COMPLETED";
+        }
+
+        // ইভেন্ট লিসেনারস
+        document.getElementById('submitBtn').addEventListener('click', checkCaptcha);
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            generateCaptcha();
+        });
+
+        // কীবোর্ড 'Enter' সাপোর্ট
+        document.getElementById('captcha-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkCaptcha();
+        });
+    </script>
+</body>
+</html>

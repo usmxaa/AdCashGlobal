@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refer & Earn | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #080a0f; color: white; font-family: 'Inter', sans-serif; }
+        .glass-card { background: rgba(22, 27, 34, 0.8); border: 1px solid #30363d; backdrop-filter: blur(10px); }
+        .refer-step { border-left: 2px dashed #30363d; position: relative; }
+        .refer-step::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            background: #00e676;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00e676;
+        }
+    </style>
+</head>
+<body class="p-5 md:p-10">
+
+    <div class="max-w-2xl mx-auto">
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-black uppercase tracking-tighter italic">Refer <span class="text-[#00e676]">& Earn</span></h1>
+            <a href="index.html" class="h-10 w-10 bg-[#161b22] rounded-full flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+
+        <div class="bg-gradient-to-br from-[#00e676] to-[#00c853] p-10 rounded-[45px] shadow-[0_20px_50px_rgba(0,230,118,0.2)] mb-10 text-center relative overflow-hidden">
+            <div class="relative z-10">
+                <i class="fas fa-users text-black text-6xl mb-4 opacity-90"></i>
+                <h1 class="text-black text-3xl font-black leading-tight uppercase">Invite Friends &<br>Earn Huge</h1>
+                <p id="bonus-badge" class="text-black bg-white/30 inline-block px-4 py-1 rounded-full font-black mt-2 uppercase tracking-widest text-[10px]">Loading Reward...</p>
+            </div>
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div class="glass-card p-6 rounded-[30px] text-center border-b-4 border-[#00e676]">
+                <p class="text-gray-500 text-[10px] font-black uppercase mb-1 tracking-widest">Total Refers</p>
+                <h3 id="total-refers" class="text-2xl font-black text-white">0</h3>
+            </div>
+            <div class="glass-card p-6 rounded-[30px] text-center border-b-4 border-[#00e676]">
+                <p class="text-gray-500 text-[10px] font-black uppercase mb-1 tracking-widest">Refer Earnings</p>
+                <h3 id="refer-earned" class="text-2xl font-black text-[#00e676]">$0.0000</h3>
+            </div>
+        </div>
+
+        <div class="glass-card p-8 rounded-[40px] mb-8 shadow-xl">
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 text-center">Your Unique Referral Link</p>
+            <div class="bg-black/40 p-5 rounded-2xl border-2 border-dashed border-[#00e676]/30 flex justify-between items-center group hover:border-[#00e676] transition-all">
+                <code id="refLink" class="text-[#00e676] font-bold text-[10px] md:text-sm tracking-wider truncate mr-2 italic uppercase">Generating...</code>
+                <button id="copyBtn" class="text-white bg-[#161b22] h-10 w-10 min-w-[40px] rounded-xl hover:bg-[#00e676] hover:text-black transition-all flex items-center justify-center">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <button id="whatsappBtn" class="w-full mt-6 bg-[#25D366] text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 hover:scale-[1.02] transition-transform uppercase text-sm">
+                <i class="fab fa-whatsapp text-lg"></i> Share on WhatsApp
+            </button>
+        </div>
+
+        <div class="glass-card p-8 rounded-[40px] mb-10">
+            <h3 class="text-lg font-black mb-8 uppercase italic tracking-tighter">Commission <span class="text-[#00e676]">Rules</span></h3>
+            <div class="space-y-8 ml-4">
+                <div class="refer-step pl-8">
+                    <h4 class="font-bold text-sm">Direct Reward</h4>
+                    <p id="direct-reward-text" class="text-gray-500 text-xs mt-1 italic font-medium tracking-tight">Get instant bonus for each new active user.</p>
+                </div>
+                <div class="refer-step pl-8">
+                    <h4 class="font-bold text-sm">Lifetime Commission</h4>
+                    <p class="text-gray-500 text-xs mt-1 italic font-medium tracking-tight">Earn 10% from your friend's every task completion.</p>
+                </div>
+                <div class="refer-step pl-8 pb-2" style="border-left: none;">
+                    <h4 class="font-bold text-[#00e676] text-sm">Unlimited Earning</h4>
+                    <p class="text-gray-500 text-xs mt-1 italic font-medium tracking-tight">No limit on how many friends you can invite!</p>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-[10px] text-gray-600 font-bold uppercase tracking-[4px] mb-10">Safe & Encrypted Refer System • v4.0</p>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData, syncGlobalSettings } from './core.js';
+
+        let referralURL = "";
+        let currentBonus = 0.05; // Default
+
+        // ১. সিস্টেম ইনিশিয়ালাইজেশন
+        function initApp() {
+            // অ্যাডমিন সেটিংস থেকে বোনাস ডাটা সিঙ্ক করা
+            syncGlobalSettings((settings) => {
+                if(settings && settings.referBonus) {
+                    currentBonus = settings.referBonus;
+                    document.getElementById('bonus-badge').innerText = `GET $${currentBonus.toFixed(2)} PER REFER`;
+                    document.getElementById('direct-reward-text').innerText = `Get instant $${currentBonus.toFixed(2)} bonus for each new active user.`;
+                }
+            });
+
+            // ২. ইউজারের ডাটা এবং রেফারেল লিংক জেনারেট করা
+            syncUserData((data) => {
+                const user = auth.currentUser;
+                if (user) {
+                    // ডাইনামিক লিংক তৈরি (signup.html পেজের জন্য)
+                    // এটি আপনার বর্তমান ডোমেইন অনুযায়ী অটোমেটিক লিংক তৈরি করবে
+                    const siteBase = window.location.href.split('refer.html')[0];
+                    referralURL = `${siteBase}signup.html?ref=${user.uid}`;
+                    
+                    document.getElementById('refLink').innerText = referralURL;
+                    document.getElementById('total-refers').innerText = data.totalRefers || 0;
+                    document.getElementById('refer-earned').innerText = "$" + (data.referEarnings || 0).toFixed(4);
+                }
+            });
+        }
+
+        // ৩. কপি বাটন ফাংশনালিটি
+        document.getElementById('copyBtn').onclick = () => {
+            if (!referralURL) return;
+            navigator.clipboard.writeText(referralURL).then(() => {
+                const icon = document.querySelector('#copyBtn i');
+                icon.classList.replace('fa-copy', 'fa-check');
+                setTimeout(() => icon.classList.replace('fa-check', 'fa-copy'), 2000);
+                alert("Referral link copied to clipboard!");
+            }).catch(err => {
+                console.error('Copy failed', err);
+            });
+        };
+
+        // ৪. হোয়াটসঅ্যাপ শেয়ারিং ফাংশনালিটি
+        document.getElementById('whatsappBtn').onclick = () => {
+            if (!referralURL) return;
+            const msg = `🤑 Hey! I'm earning daily with AdCashGlobal. Join now using my link and get an instant $${currentBonus} bonus! \n\nRegister here: ${referralURL}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        initApp();
+    </script>
+</body>
+</html>

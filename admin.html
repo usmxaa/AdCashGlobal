@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #05070a; color: white; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .glass-card { background: #0d1117; border: 1px solid #1f2937; border-radius: 24px; }
+        .nav-link { padding: 12px 20px; border-radius: 12px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; color: #6b7280; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .nav-link.active { background: #00e676; color: #000; }
+        .input-dark { background: #080a0f; border: 1px solid #1f2937; padding: 14px; border-radius: 15px; width: 100%; outline: none; font-size: 13px; }
+        .input-dark:focus { border-color: #00e676; }
+        .btn-save { background: #00e676; color: #000; font-weight: 900; padding: 15px; border-radius: 15px; width: 100%; text-transform: uppercase; transition: 0.3s; }
+        .btn-save:hover { transform: scale(1.02); box-shadow: 0 10px 20px rgba(0, 230, 118, 0.2); }
+    </style>
+</head>
+<body class="flex min-h-screen">
+
+    <aside class="w-64 border-r border-gray-800 p-6 space-y-2 hidden md:block">
+        <h2 class="text-xl font-black italic mb-10 text-[#00e676]">MASTER <span class="text-white">OS</span></h2>
+        <div onclick="showSection('payouts')" class="nav-link active"><i class="fas fa-hand-holding-usd"></i> Payouts</div>
+        <div onclick="showSection('users')" class="nav-link"><i class="fas fa-users"></i> User Manager</div>
+        <div onclick="showSection('earning')" class="nav-link"><i class="fas fa-coins"></i> Rewards Control</div>
+        <div onclick="showSection('tasks')" class="nav-link"><i class="fas fa-tasks"></i> Jobs & Tasks</div>
+        <div onclick="showSection('media')" class="nav-link"><i class="fas fa-play-circle"></i> Video & Ads</div>
+        <div onclick="showSection('system')" class="nav-link"><i class="fas fa-cogs"></i> System Config</div>
+        <div class="pt-20">
+            <a href="index.html" class="nav-link text-red-500"><i class="fas fa-sign-out-alt"></i> Back to Site</a>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto">
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+            <div class="glass-card p-6">
+                <p class="text-gray-500 text-[9px] font-black uppercase">Total Users</p>
+                <h3 id="stat-total-users" class="text-2xl font-black">0</h3>
+            </div>
+            <div class="glass-card p-6">
+                <p class="text-gray-500 text-[9px] font-black uppercase">Pending Withdrawal</p>
+                <h3 id="stat-pending-wd" class="text-2xl font-black text-yellow-500">0</h3>
+            </div>
+            <div class="glass-card p-6">
+                <p class="text-gray-500 text-[9px] font-black uppercase">Paid to Users</p>
+                <h3 id="stat-total-paid" class="text-2xl font-black text-[#00e676]">$0.00</h3>
+            </div>
+        </div>
+
+        <section id="sec-payouts" class="admin-section">
+            <h3 class="text-lg font-black uppercase italic mb-6">Withdrawal <span class="text-[#00e676]">Requests</span></h3>
+            <div class="glass-card overflow-hidden">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-black/50 text-gray-500 uppercase font-black">
+                        <tr><th class="p-5">User Info</th><th class="p-5">Method</th><th class="p-5">Amount</th><th class="p-5">Wallet Address</th><th class="p-5">Action</th></tr>
+                    </thead>
+                    <tbody id="payout-table"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="sec-earning" class="admin-section hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-card p-8">
+                <h3 class="text-[#00e676] font-black uppercase italic mb-6">Game Rewards Config</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[9px] text-gray-500 font-black uppercase">Daily Bonus Amount ($)</label>
+                        <input type="number" id="set-daily-bonus" class="input-dark" step="0.001">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[9px] text-gray-500 font-black uppercase">Spin Max Win ($)</label>
+                            <input type="number" id="set-spin-win" class="input-dark" step="0.001">
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-gray-500 font-black uppercase">Quiz Reward ($)</label>
+                            <input type="number" id="set-quiz-reward" class="input-dark" step="0.001">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-gray-500 font-black uppercase">Captcha Reward ($)</label>
+                        <input type="number" id="set-captcha-reward" class="input-dark" step="0.001">
+                    </div>
+                    <button onclick="saveRewardSettings()" class="btn-save">Update Rewards</button>
+                </div>
+            </div>
+
+            <div class="glass-card p-8">
+                <h3 class="text-blue-500 font-black uppercase italic mb-6">Referral & Promo</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[9px] text-gray-500 font-black uppercase">Refer Bonus ($)</label>
+                        <input type="number" id="set-refer-bonus" class="input-dark" step="0.01">
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-gray-500 font-black uppercase">Promo Code Name</label>
+                        <input type="text" id="promo-name" class="input-dark" placeholder="MEGA2026">
+                    </div>
+                    <div>
+                        <label class="text-[9px] text-gray-500 font-black uppercase">Promo Reward ($)</label>
+                        <input type="number" id="promo-value" class="input-dark">
+                    </div>
+                    <button onclick="saveReferSettings()" class="btn-save bg-blue-500 text-white">Save Referral</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="sec-tasks" class="admin-section hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-card p-8">
+                <h3 class="text-[#00e676] font-black uppercase italic mb-6">Add New Offer / Job</h3>
+                <div class="space-y-3">
+                    <input type="text" id="job-title" placeholder="Job Title (e.g. Subscribe Channel)" class="input-dark">
+                    <input type="text" id="job-link" placeholder="Offer URL / Affiliate Link" class="input-dark">
+                    <input type="number" id="job-reward" placeholder="Reward ($)" class="input-dark">
+                    <select id="job-type" class="input-dark">
+                        <option value="offers">Offers Page</option>
+                        <option value="tasks">Daily Task Page</option>
+                    </select>
+                    <button onclick="addJob()" class="btn-save">Publish Job</button>
+                </div>
+            </div>
+            <div class="glass-card p-8 overflow-y-auto max-h-[400px]">
+                <h3 class="text-gray-500 font-black uppercase italic mb-4">Active Jobs</h3>
+                <div id="job-list" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <section id="sec-media" class="admin-section hidden">
+            <div class="glass-card p-8 max-w-xl">
+                <h3 class="text-red-500 font-black uppercase italic mb-6">Video Ads Management</h3>
+                <div class="space-y-4">
+                    <input type="text" id="vid-link" placeholder="YouTube Video ID or Ad Link" class="input-dark">
+                    <input type="number" id="vid-reward" placeholder="Reward per view ($)" class="input-dark">
+                    <button onclick="updateVideoAd()" class="btn-save bg-red-600 text-white">Update Video Ad</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module">
+        import { db } from './core.js';
+        import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, addDoc, query, orderBy, where, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ১. সেকশন সুইচিং
+        window.showSection = (id) => {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(`sec-${id}`).classList.remove('hidden');
+            event.currentTarget.classList.add('active');
+        };
+
+        // ২. রিওয়ার্ড সেটিংস সেভ (Spin, Quiz, Bonus, Captcha Control)
+        window.saveRewardSettings = async () => {
+            const data = {
+                dailyBonus: parseFloat(document.getElementById('set-daily-bonus').value),
+                spinMax: parseFloat(document.getElementById('set-spin-win').value),
+                quizReward: parseFloat(document.getElementById('set-quiz-reward').value),
+                captchaReward: parseFloat(document.getElementById('set-captcha-reward').value)
+            };
+            await setDoc(doc(db, "settings", "rewards"), data, {merge: true});
+            alert("All Rewards Updated! ✅");
+        };
+
+        // ৩. অফার এবং টাস্ক যোগ করা (Offers & Tasks Control)
+        window.addJob = async () => {
+            const job = {
+                title: document.getElementById('job-title').value,
+                link: document.getElementById('job-link').value,
+                reward: parseFloat(document.getElementById('job-reward').value),
+                type: document.getElementById('job-type').value,
+                createdAt: Date.now()
+            };
+            await addDoc(collection(db, "jobs"), job);
+            alert("New Job Added Successfully! 🚀");
+            loadData();
+        };
+
+        // ৪. ডাটা লোড ফাংশন
+        async function loadData() {
+            // পেমেন্ট রিকোয়েস্ট লোড
+            const wdSnap = await getDocs(query(collection(db, "withdrawals"), orderBy("timestamp", "desc")));
+            const pTable = document.getElementById('payout-table');
+            pTable.innerHTML = "";
+            let pending = 0; let paid = 0;
+            
+            wdSnap.forEach(d => {
+                const item = d.data();
+                if(item.status === 'Pending') pending++; else paid += item.amount;
+                pTable.innerHTML += `
+                    <tr class="border-b border-gray-800/40 hover:bg-white/[0.02]">
+                        <td class="p-5 font-bold">${item.email}</td>
+                        <td class="p-5 uppercase">${item.method}</td>
+                        <td class="p-5 text-[#00e676] font-black">$${item.amount.toFixed(2)}</td>
+                        <td class="p-5 font-mono opacity-50">${item.address}</td>
+                        <td class="p-5">
+                            ${item.status === 'Pending' ? `<button onclick="approve('${d.id}')" class="bg-[#00e676] text-black px-3 py-1 rounded-lg font-black">PAY</button>` : '✅'}
+                        </td>
+                    </tr>`;
+            });
+
+            // সেটিংস লোড
+            const rewSnap = await getDocs(collection(db, "settings"));
+            rewSnap.forEach(s => {
+                if(s.id === "rewards"){
+                    const d = s.data();
+                    document.getElementById('set-daily-bonus').value = d.dailyBonus;
+                    document.getElementById('set-spin-win').value = d.spinMax;
+                    document.getElementById('set-quiz-reward').value = d.quizReward;
+                    document.getElementById('set-captcha-reward').value = d.captchaReward;
+                }
+            });
+
+            // জব লিস্ট লোড
+            const jobSnap = await getDocs(collection(db, "jobs"));
+            const jList = document.getElementById('job-list');
+            jList.innerHTML = "";
+            jobSnap.forEach(j => {
+                const d = j.data();
+                jList.innerHTML += `<div class="bg-black/30 p-4 rounded-xl flex justify-between border border-gray-800">
+                    <div><p class="font-black text-[10px] uppercase">${d.title}</p><p class="text-[#00e676] text-[10px]">$${d.reward}</p></div>
+                    <button onclick="delJob('${j.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
+                </div>`;
+            });
+
+            document.getElementById('stat-pending-wd').innerText = pending;
+            document.getElementById('stat-total-paid').innerText = `$${paid.toFixed(2)}`;
+        }
+
+        window.approve = async (id) => { await updateDoc(doc(db, "withdrawals", id), {status: "Completed"}); loadData(); };
+        window.delJob = async (id) => { await deleteDoc(doc(db, "jobs", id)); loadData(); };
+
+        loadData();
+    </script>
+</body>
+</html>
