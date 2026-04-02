@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Ads Center | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; font-family: 'Inter', sans-serif; }
+        .video-slot { background: rgba(30, 38, 50, 0.8); border: 1px solid #313d4f; transition: 0.3s; }
+        .video-slot.completed { opacity: 0.4; pointer-events: none; border-color: #1e2632; }
+        .progress-bar { background: linear-gradient(90deg, #00e676 0%, #00c853 100%); transition: width 0.5s ease; }
+        .loading-spinner { border-top-color: #00e676; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="text-white p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-black uppercase tracking-tighter italic">Video <span class="text-[#00e676]">Rewards</span></h1>
+                <p class="text-gray-500 text-sm" id="status-text">Loading ads configuration...</p>
+            </div>
+            <a href="index.html" class="h-12 w-12 bg-[#1e2632] rounded-full flex items-center justify-center border border-gray-700 hover:border-white transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-[#1e2632] p-6 rounded-[30px] border border-gray-800">
+                <p class="text-gray-500 text-xs font-bold uppercase mb-2">Main Balance</p>
+                <h2 class="text-3xl font-black text-[#00e676]" id="main-balance">$0.0000</h2>
+            </div>
+            <div class="bg-[#1e2632] p-6 rounded-[30px] border border-gray-800 md:col-span-2">
+                <div class="flex justify-between mb-2">
+                    <p class="text-gray-500 text-xs font-bold uppercase">Daily Progress (<span id="video-count">0</span>/<span id="total-limit">--</span>)</p>
+                    <p class="text-[#00e676] text-xs font-bold" id="progress-percent">0%</p>
+                </div>
+                <div class="w-full bg-black/40 h-4 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="progress-bar h-full w-[0%] rounded-full shadow-[0_0_15px_rgba(0,230,118,0.3)]"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="video-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            </div>
+
+        <div class="mt-12 text-center p-8 border-t border-gray-800">
+            <p id="timer-display" class="text-yellow-500 font-bold hidden mb-2 italic">Waiting for refresh...</p>
+            <p class="text-gray-500 text-xs uppercase tracking-widest">Rewards are added directly to your dollar balance.</p>
+        </div>
+    </div>
+
+    <div id="ad-overlay" class="fixed inset-0 bg-black/90 z-[100] hidden flex-col items-center justify-center">
+        <div class="loading-spinner h-16 w-16 border-4 border-gray-700 rounded-full mb-4"></div>
+        <p class="text-[#00e676] font-black animate-pulse tracking-widest uppercase">Watching Video Ad...</p>
+        <p class="text-gray-500 text-xs mt-2" id="ad-timer">Wait 15 seconds</p>
+    </div>
+
+    <script type="module">
+        import { syncUserData, addEarnings, getAdminSettings } from './core.js';
+
+        const rewardPerVideo = 0.005;
+        let totalSlots = 20; 
+        let localWatchedCount = 0;
+
+        async function startApp() {
+            try {
+                // ১. এডমিন প্যানেল থেকে লিমিট লোড করা
+                const settings = await getAdminSettings();
+                totalSlots = settings.videoLimit || 20;
+                document.getElementById('total-limit').innerText = totalSlots;
+
+                // ২. ইউজারের রিয়েল-টাইম ডাটা সিঙ্ক করা
+                syncUserData((data) => {
+                    document.getElementById('main-balance').innerText = `$${(data.balance || 0).toFixed(4)}`;
+                    localWatchedCount = data.videosWatched || 0; 
+                    initVideoPage();
+                });
+            } catch (err) {
+                console.error("Initialization failed", err);
+            }
+        }
+
+        function initVideoPage() {
+            const grid = document.getElementById('video-grid');
+            grid.innerHTML = ''; 
+
+            for (let i = 1; i <= totalSlots; i++) {
+                const isCompleted = localWatchedCount >= i;
+                const slotNum = i < 10 ? '0' + i : i;
+                
+                const slotDiv = document.createElement('div');
+                slotDiv.id = `slot-${i}`;
+                slotDiv.className = `video-slot p-5 rounded-[30px] flex flex-col items-center text-center cursor-pointer group ${isCompleted ? 'completed' : ''}`;
+                slotDiv.innerHTML = `
+                    <div class="h-14 w-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition">
+                        <i class="fas fa-play text-red-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-bold text-sm mb-1">Ad Slot #${slotNum}</h3>
+                    <p class="text-[#00e676] text-xs font-bold mb-4">$${rewardPerVideo}</p>
+                    <button class="w-full bg-[#1e2632] border border-gray-700 py-2 rounded-xl text-[10px] font-black group-hover:bg-[#00e676] group-hover:text-black transition uppercase">
+                        ${isCompleted ? 'Watched' : 'Watch Ad'}
+                    </button>`;
+                
+                if (!isCompleted) {
+                    slotDiv.onclick = () => startAd(i);
+                }
+                grid.appendChild(slotDiv);
+            }
+            updateStatsUI();
+        }
+
+        function updateStatsUI() {
+            const watched = localWatchedCount;
+            const percent = (watched / totalSlots) * 100;
+            
+            document.getElementById('video-count').innerText = watched;
+            document.getElementById('progress-percent').innerText = Math.floor(percent) + '%';
+            document.getElementById('progress-bar').style.width = percent + '%';
+            document.getElementById('status-text').innerText = `${totalSlots - watched} Premium Ads available for today`;
+        }
+
+        window.startAd = function(slotId) {
+            const overlay = document.getElementById('ad-overlay');
+            const adTimer = document.getElementById('ad-timer');
+            let timeLeft = 15; 
+
+            overlay.classList.remove('hidden');
+            
+            const countdown = setInterval(() => {
+                timeLeft--;
+                adTimer.innerText = `Wait ${timeLeft} seconds`;
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    overlay.classList.add('hidden');
+                    completeVideoTask(slotId);
+                }
+            }, 1000);
+        }
+
+        async function completeVideoTask(slotId) {
+            try {
+                // ১. ডাটাবেজে ডলার জমা করা
+                await addEarnings(rewardPerVideo);
+                
+                // ২. ইউজারের ভিডিও দেখার সংখ্যা বাড়ানো (লোকালি আপডেট করা)
+                localWatchedCount++;
+                
+                // ৩. UI আপডেট
+                const slot = document.getElementById(`slot-${slotId}`);
+                if(slot) {
+                    slot.classList.add('completed');
+                    slot.querySelector('button').innerText = "Watched";
+                }
+                updateStatsUI();
+                
+            } catch (error) {
+                alert("Transaction failed. Check internet.");
+            }
+        }
+
+        // শুরু করা
+        startApp();
+    </script>
+</body>
+</html>

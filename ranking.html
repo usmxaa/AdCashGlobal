@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #080a0f; color: white; font-family: 'Inter', sans-serif; }
+        .rank-card { background: #161b22; transition: 0.3s; border: 1px solid #1f2937; }
+        .rank-card:hover { transform: scale(1.02); border-color: #00e676; }
+        .top-row { border-left: 4px solid #00e676; background: rgba(0, 230, 118, 0.05); }
+        .gold-row { border-left: 4px solid #fbbf24; background: rgba(251, 191, 36, 0.05); }
+    </style>
+</head>
+<body class="p-5 md:p-10">
+    <div class="max-w-md mx-auto">
+        
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-2xl font-black uppercase tracking-tighter italic"><i class="fas fa-crown text-yellow-500 mr-2"></i> TOP <span class="text-[#00e676]">EARNERS</span></h1>
+            <a href="index.html" class="h-10 w-10 bg-[#161b22] rounded-full flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+
+        <div class="bg-gradient-to-br from-[#161b22] to-[#080a0f] p-6 rounded-[30px] border border-[#00e676]/30 mb-10 flex justify-between items-center shadow-2xl">
+            <div class="flex items-center gap-4">
+                <div class="h-14 w-14 bg-[#00e676]/10 rounded-full flex items-center justify-center border border-[#00e676]">
+                    <i class="fas fa-user text-[#00e676] text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Your Position</p>
+                    <h2 class="text-xl font-black">#<span id="user-rank">...</span></h2>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px] text-gray-500 font-black uppercase tracking-widest">Balance</p>
+                <h2 id="main-balance" class="text-xl font-black text-[#00e676]">$0.0000</h2>
+            </div>
+        </div>
+
+        <div id="leaderboard-list" class="space-y-4">
+            <div class="text-center py-10 opacity-20">
+                <i class="fas fa-circle-notch animate-spin text-3xl"></i>
+                <p class="mt-2 text-[10px] font-bold uppercase">Fetching Global Data...</p>
+            </div>
+        </div>
+
+        <p class="text-center text-[10px] text-gray-600 mt-12 font-black uppercase tracking-[4px]">Global Real-time Ranking</p>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData } from './core.js';
+        import { collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ১. ডাটা লোড করা
+        async function loadRanking() {
+            const listContainer = document.getElementById('leaderboard-list');
+            
+            try {
+                // ২. টপ ৫০ জন আর্নারের ডাটা কোয়েরি করা
+                const q = query(collection(db, "users"), orderBy("balance", "desc"), limit(50));
+                const querySnapshot = await getDocs(q);
+                
+                let html = "";
+                let rank = 1;
+                let foundUserRank = false;
+
+                querySnapshot.forEach((doc) => {
+                    const userData = doc.data();
+                    const isCurrentUser = auth.currentUser && doc.id === auth.currentUser.uid;
+                    const displayName = userData.name || "Anonymous User";
+                    
+                    if (isCurrentUser) {
+                        document.getElementById('user-rank').innerText = rank;
+                        foundUserRank = true;
+                    }
+
+                    // ডিজাইন ভ্যারিয়েশন (প্রথম ৩ জনের জন্য আলাদা লুক)
+                    const rowClass = rank === 1 ? 'gold-row' : (rank <= 3 ? 'top-row' : '');
+                    const crownColor = rank === 1 ? 'text-yellow-500' : (rank === 2 ? 'text-gray-300' : 'text-orange-400');
+
+                    html += `
+                        <div class="rank-card ${rowClass} p-5 rounded-2xl flex justify-between items-center ${isCurrentUser ? 'border-[#00e676]' : ''}">
+                            <div class="flex items-center gap-4">
+                                <span class="font-black text-lg w-8 ${rank <= 3 ? crownColor : 'text-gray-500'}">
+                                    ${rank <= 3 ? '<i class="fas fa-crown text-xs block"></i>' : ''}#${rank}
+                                </span>
+                                <img src="https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&color=fff" class="h-10 w-10 rounded-full border border-gray-700">
+                                <div>
+                                    <p class="font-bold text-sm ${isCurrentUser ? 'text-[#00e676]' : 'text-white'}">${displayName}</p>
+                                    <p class="text-[9px] text-gray-500 uppercase font-black tracking-widest">${userData.country || 'Global User'}</p>
+                                </div>
+                            </div>
+                            <span class="font-black text-[#00e676] tracking-tighter">$${(userData.balance || 0).toFixed(3)}</span>
+                        </div>
+                    `;
+                    rank++;
+                });
+
+                listContainer.innerHTML = html;
+
+                // যদি ইউজার টপ ৫০-এ না থাকে
+                if (!foundUserRank) {
+                    document.getElementById('user-rank').innerText = "50+";
+                }
+
+            } catch (error) {
+                console.error("Error fetching leaderboard:", error);
+                listContainer.innerHTML = `<p class="text-center text-red-500 text-xs uppercase font-bold">Failed to load ranking</p>`;
+            }
+        }
+
+        // ৩. ব্যালেন্স সিঙ্ক করা
+        syncUserData((data) => {
+            document.getElementById('main-balance').innerText = `$${(data.balance || 0).toFixed(4)}`;
+            loadRanking(); // ব্যালেন্স সিঙ্ক হলে র‍্যাঙ্কিং রিফ্রেশ হবে
+        });
+
+    </script>
+</body>
+</html>

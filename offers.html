@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Offers | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; color: white; font-family: 'Inter', sans-serif; }
+        .offer-card { 
+            background: linear-gradient(145deg, #161b22, #1c2128);
+            border: 1px solid #30363d;
+            transition: all 0.3s ease;
+        }
+        .offer-card:hover { 
+            border-color: #00e676; 
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 230, 118, 0.1);
+        }
+        .badge-premium { background: linear-gradient(90deg, #ff9800, #f44336); }
+        .filter-btn.active { background-color: #00e676 !important; color: black !important; border-color: #00e676 !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+
+    <div class="max-w-5xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-black uppercase tracking-tighter italic">Premium <span class="text-[#00e676]">Offers</span></h1>
+                <p class="text-gray-500 text-sm font-bold uppercase tracking-widest mt-1">High Paying Tasks Only</p>
+            </div>
+            <a href="index.html" class="h-12 w-12 bg-[#161b22] rounded-2xl flex items-center justify-center border border-gray-800 hover:text-[#00e676] transition shadow-lg">
+                <i class="fas fa-times text-xl"></i>
+            </a>
+        </div>
+
+        <div class="flex gap-3 mb-8 overflow-x-auto pb-2 no-scrollbar" id="filter-container">
+            <button data-type="all" class="filter-btn active bg-[#161b22] border border-gray-800 px-6 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all">All Jobs</button>
+            <button data-type="apps" class="filter-btn bg-[#161b22] text-gray-400 border border-gray-800 px-6 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all">Apps</button>
+            <button data-type="surveys" class="filter-btn bg-[#161b22] text-gray-400 border border-gray-800 px-6 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all">Surveys</button>
+            <button data-type="signup" class="filter-btn bg-[#161b22] text-gray-400 border border-gray-800 px-6 py-2 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all">Signup</button>
+        </div>
+
+        <div id="offers-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="col-span-full text-center py-20 opacity-20">
+                <i class="fas fa-circle-notch animate-spin text-4xl mb-4"></i>
+                <p class="uppercase font-black tracking-widest">Loading Premium Jobs...</p>
+            </div>
+        </div>
+
+        <div class="mt-12 bg-blue-500/10 border border-blue-500/20 p-6 rounded-[30px] text-center">
+            <p class="text-blue-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                <i class="fas fa-shield-alt"></i> Tasks are verified manually by our team
+            </p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, auth, syncUserData } from './core.js';
+        import { collection, getDocs, doc, updateDoc, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        let allOffers = [];
+
+        // ১. ডাটাবেজ থেকে অফার লোড করা
+        async function fetchOffers() {
+            const grid = document.getElementById('offers-grid');
+            try {
+                const querySnapshot = await getDocs(collection(db, "offers"));
+                allOffers = [];
+                querySnapshot.forEach((doc) => {
+                    allOffers.push({ id: doc.id, ...doc.data() });
+                });
+                renderOffers('all');
+            } catch (error) {
+                console.error("Error fetching offers:", error);
+                grid.innerHTML = `<p class="col-span-full text-center text-red-500 font-bold uppercase">Failed to load offers!</p>`;
+            }
+        }
+
+        // ২. অফার রেন্ডার করা
+        function renderOffers(filterType) {
+            const grid = document.getElementById('offers-grid');
+            grid.innerHTML = "";
+
+            const filtered = filterType === 'all' ? allOffers : allOffers.filter(o => o.type === filterType);
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-gray-600 py-10 uppercase font-black tracking-widest">No ${filterType} available right now.</p>`;
+                return;
+            }
+
+            filtered.forEach(offer => {
+                grid.innerHTML += `
+                    <div class="offer-card p-6 rounded-[35px] flex items-center gap-5 relative overflow-hidden">
+                        ${offer.isHot ? '<div class="absolute top-0 right-0 badge-premium text-[8px] font-black px-4 py-1 rounded-bl-2xl uppercase tracking-tighter text-white">Hot Offer</div>' : ''}
+                        
+                        <div class="h-20 w-20 bg-black/40 rounded-3xl flex-shrink-0 flex items-center justify-center border border-gray-800">
+                            <img src="${offer.icon || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'}" class="h-12 w-12 object-contain" alt="Icon">
+                        </div>
+                        
+                        <div class="flex-grow">
+                            <h4 class="font-black text-lg leading-tight mb-1">${offer.title}</h4>
+                            <p class="text-gray-400 text-xs mb-3 font-medium line-clamp-1">${offer.description}</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[#00e676] font-black text-xl">$${parseFloat(offer.reward).toFixed(2)}</span>
+                                <button onclick="window.handleTask('${offer.id}', ${offer.reward}, '${offer.link}')" 
+                                    class="bg-white text-black px-5 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#00e676] transition active:scale-95">
+                                    Start Job
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // ৩. টাস্ক কমপ্লিট লজিক
+        window.handleTask = async (offerId, reward, link) => {
+            const user = auth.currentUser;
+            if (!user) { alert("Please login first!"); return; }
+
+            // ১. ইউজারকে কাজের লিংকে পাঠানো
+            window.open(link, '_blank');
+
+            // ২. ডেমো হিসেবে আমরা সাথে সাথে রিওয়ার্ড দিচ্ছি (আসল কাজে আপনি চাইলে ম্যানুয়াল ভেরিফাই করতে পারেন)
+            // এখানে একটি কনফার্মেশন প্রম্পট দেওয়া ভালো
+            if (confirm("Did you complete the task correctly? Incorrect work results in ban!")) {
+                try {
+                    const userRef = doc(db, "users", user.uid);
+                    await updateDoc(userRef, {
+                        balance: increment(reward),
+                        completedOffers: arrayUnion(offerId)
+                    });
+                    alert(`Success! $${reward} added to your balance.`);
+                    location.reload();
+                } catch (e) {
+                    console.error("Reward error:", e);
+                }
+            }
+        };
+
+        // ৪. ফিল্টার বাটন হ্যান্ডলিং
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderOffers(btn.dataset.type);
+            };
+        });
+
+        // ইনিশিয়ালাইজ
+        fetchOffers();
+        syncUserData(() => {});
+    </script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Spin | AdCashGlobal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0a0d15; color: white; font-family: 'Poppins', sans-serif; overflow: hidden; }
+        
+        .wheel-container {
+            position: relative;
+            width: 320px;
+            height: 320px;
+            margin: 0 auto 50px;
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #1e2632;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: transform 5s cubic-bezier(0.2, 0.8, 0.2, 1); 
+        }
+
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 35px solid #ef4444; 
+            z-index: 10;
+            filter: drop-shadow(0 4px 5px rgba(0,0,0,0.5));
+        }
+
+        @keyframes popup {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .win-announcement { animation: popup 0.5s ease-out forwards; }
+    </style>
+</head>
+<body class="p-6 flex flex-col items-center justify-center min-h-screen">
+
+    <div class="absolute top-6 left-6 right-6 flex justify-between items-center">
+        <a href="index.html" class="h-10 w-10 bg-[#1e2632] rounded-full flex items-center justify-center border border-gray-800">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div class="text-right">
+            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Balance</p>
+            <p id="main-balance" class="text-[#00e676] font-black">$0.0000</p>
+        </div>
+    </div>
+
+    <div class="w-full max-w-md mt-10">
+        <h1 class="text-3xl font-black text-center mb-10 uppercase italic tracking-tighter">
+            Lucky <span class="text-[#00e676]">Spin</span>
+        </h1>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <img id="wheel" src="image/spin.png" alt="Lucky Wheel">
+        </div>
+
+        <div class="bg-[#1e2632] p-8 rounded-[40px] border border-gray-800 text-center relative z-20">
+            <p class="text-gray-500 uppercase text-[10px] font-black tracking-[3px] mb-2">Daily Chance</p>
+            <h2 id="spinCount" class="text-4xl font-black text-white mb-6">--</h2>
+            
+            <button id="spinBtn" class="w-full bg-[#00e676] text-black font-extrabold py-5 rounded-3xl shadow-[0_10px_30px_rgba(0,230,118,0.2)] text-lg uppercase transition-all hover:scale-105 active:scale-95">
+                SPIN WHEEL
+            </button>
+        </div>
+    </div>
+
+    <div id="winModal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center hidden p-6 backdrop-blur-sm">
+        <div class="bg-[#1e2632] p-10 rounded-[45px] border border-[#00e676]/30 text-center win-announcement w-full max-w-sm">
+            <div class="h-24 w-24 bg-[#00e676]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-coins text-5xl text-yellow-400"></i>
+            </div>
+            <p class="text-gray-400 text-xs mb-1 uppercase font-black tracking-widest">Congratulations!</p>
+            <h1 id="winAmount" class="text-6xl font-black text-[#00e676] mb-8 leading-none">$0.00</h1>
+            <button id="collectBtn" class="w-full bg-[#00e676] text-black font-black py-5 rounded-[25px] shadow-xl">COLLECT REWARD</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { syncUserData, addEarnings, getAdminSettings } from './core.js';
+
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spinBtn');
+        const spinCountEl = document.getElementById('spinCount');
+        const winModal = document.getElementById('winModal');
+        const winAmountEl = document.getElementById('winAmount');
+        const collectBtn = document.getElementById('collectBtn');
+
+        let isSpinning = false;
+        let currentRotation = 0;
+        let totalDailyLimit = 10; // এডমিন প্যানেল থেকে আসবে
+        let spinsDoneToday = 0;
+
+        // পুরস্কারের চার্ট (ডিগ্রি অনুযায়ী)
+        const prizes = [
+            { deg: 0,   val: 0.005 },
+            { deg: 30,  val: 0.010 },
+            { deg: 60,  val: 0.002 },
+            { deg: 90,  val: 0.050 },
+            { deg: 120, val: 0.001 },
+            { deg: 150, val: 0.100 },
+            { deg: 180, val: 0.005 },
+            { deg: 210, val: 0.200 },
+            { deg: 240, val: 0.002 },
+            { deg: 270, val: 0.015 },
+            { deg: 300, val: 0.001 },
+            { deg: 330, val: 0.005 }
+        ];
+
+        async function initApp() {
+            // ১. এডমিন সেটিংস থেকে স্পিন লিমিট আনা
+            const settings = await getAdminSettings();
+            totalDailyLimit = settings.spinLimit || 10;
+
+            // ২. ইউজার ডাটা সিঙ্ক করা
+            syncUserData((data) => {
+                document.getElementById('main-balance').innerText = `$${(data.balance || 0).toFixed(4)}`;
+                spinsDoneToday = data.spinsDone || 0;
+                
+                const remaining = totalDailyLimit - spinsDoneToday;
+                spinCountEl.innerText = remaining > 0 ? remaining : 0;
+
+                if (remaining <= 0) {
+                    disableSpinButton();
+                }
+            });
+        }
+
+        spinBtn.addEventListener('click', () => {
+            if (isSpinning || (totalDailyLimit - spinsDoneToday) <= 0) return;
+
+            isSpinning = true;
+            spinBtn.innerText = "SPINNING...";
+            spinBtn.style.opacity = "0.5";
+
+            const prizeIndex = Math.floor(Math.random() * prizes.length);
+            const selectedPrize = prizes[prizeIndex];
+
+            const extraDeg = selectedPrize.deg;
+            const spinDeg = 1800 + (360 - extraDeg); 
+            currentRotation += spinDeg;
+
+            wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                spinBtn.innerText = "SPIN WHEEL";
+                spinBtn.style.opacity = "1";
+                showWin(selectedPrize.val);
+            }, 5000);
+        });
+
+        async function showWin(amount) {
+            winAmountEl.innerText = "$" + amount.toFixed(3);
+            winModal.classList.remove('hidden');
+
+            collectBtn.onclick = async () => {
+                collectBtn.innerText = "SAVING...";
+                collectBtn.disabled = true;
+
+                try {
+                    // ডাটাবেজে ডলার এবং স্পিন কাউন্ট আপডেট
+                    await addEarnings(amount);
+                    
+                    // স্পিন কাউন্ট ডাটাবেজে ট্র্যাকিং করার জন্য (core.js এ updateDoc দিয়ে করা যেতে পারে)
+                    // আপাতত ব্যালেন্স আপডেট হচ্ছে। 
+                    
+                    winModal.classList.add('hidden');
+                    location.reload(); // ডাটা রিফ্রেশ করার জন্য
+                } catch (e) {
+                    alert("Error saving rewards.");
+                    collectBtn.innerText = "COLLECT REWARD";
+                    collectBtn.disabled = false;
+                }
+            };
+        }
+
+        function disableSpinButton() {
+            spinBtn.innerText = "NO CHANCE LEFT";
+            spinBtn.disabled = true;
+            spinBtn.classList.replace('bg-[#00e676]', 'bg-gray-700');
+            spinBtn.classList.replace('text-black', 'text-gray-400');
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
